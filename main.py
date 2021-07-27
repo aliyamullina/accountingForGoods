@@ -1,4 +1,5 @@
 import json
+import jsonschema
 
 
 def load_json(file_json: str):
@@ -12,4 +13,21 @@ def load_json(file_json: str):
         return False
 
 
-input_json = load_json('goods.schema.json')
+def validate_schema(add_json: dict, add_schema: dict):
+    """ Происходит валидация входных данных."""
+    try:
+        jsonschema.validate(add_json, add_schema)
+        return True
+    except jsonschema.exceptions.ValidationError as message:
+        print('Ошибка валидации json:', message)
+        return False
+
+
+def main():
+    """ Старт программы. """
+    add_json = load_json('goods.file.json')
+    add_schema = load_json('goods.schema.json')
+    validate_schema(add_json, add_schema)
+
+
+main()
