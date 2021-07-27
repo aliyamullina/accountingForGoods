@@ -57,6 +57,7 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
                     id_good         INTEGER NOT NULL, 
                     location        VARCHAR NOT NULL,
                     amount          INTEGER NOT NULL,
+                    UNIQUE(id_good, location),
                     FOREIGN KEY (id_good) REFERENCES goods (id));"""
                    )
     conn.commit()
@@ -84,8 +85,7 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
         #                )
         cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
                                 VALUES {id_good, location, amount}
-                                ON CONFLICT(id_good) DO UPDATE SET
-                                location = EXCLUDED.location,
+                                ON CONFLICT(id_good, location) DO UPDATE SET
                                 amount = EXCLUDED.amount;"""
                        )
         conn.commit()
