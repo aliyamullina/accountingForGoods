@@ -32,11 +32,9 @@ def prepare_json_to_db(file_json: dict):
                    file_json['package_params']['height'],
                    file_json['package_params']['width']]
 
-    # table_shops_goods = [file_json['id']]
-    # for i in file_json['location_and_quantity']:
-    #     table_shops_goods.append(i['location'])
-    #     table_shops_goods.append(i['amount'])
-    table_shops_goods = (110, 'Магазин на Пушкина', 3,), (110, 'Магазин на Толстого', 5)
+    table_shops_goods = []
+    for i in file_json['location_and_quantity']:
+        table_shops_goods.append([file_json['id'], i['location'], i['amount']])
 
     return tuple(table_goods), tuple(table_shops_goods)
 
@@ -78,9 +76,7 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
     for i in table_shops_goods:
         id_good, location, amount = i
         cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
-                            VALUES {id_good, location, amount}
-                            ON CONFLICT(id_good, location) 
-                            DO UPDATE SET amount = EXCLUDED.amount;"""
+                            VALUES {id_good, location, amount};"""
                        )
         conn.commit()
     conn.close()
