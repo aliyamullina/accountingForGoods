@@ -75,14 +75,6 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
 
     for i in table_shops_goods:
         id_good, location, amount = i
-        # Не обновляет, дописывает
-        # cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
-        #                     VALUES {id_good, location, amount}
-        #                     ON CONFLICT(id) DO UPDATE SET
-        #                     id_good = EXCLUDED.id_good,
-        #                     location = EXCLUDED.location,
-        #                     amount = EXCLUDED.amount;"""
-        #                )
         cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
                                 VALUES {id_good, location, amount}
                                 ON CONFLICT(id_good, location) DO UPDATE SET
