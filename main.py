@@ -1,5 +1,6 @@
 import json
 import jsonschema
+# Использовать либо sqlite3 либо postgres для хранения данных.
 import sqlite3
 
 
@@ -31,31 +32,27 @@ def prepare_json_to_db(file_json: dict):
                    file_json['package_params']['height'],
                    file_json['package_params']['width']]
 
-    table_shops_goods = [file_json['id']]
-    for i in file_json['location_and_quantity']:
-        table_shops_goods.append(i['location'])
-        table_shops_goods.append(i['amount'])
+    # table_shops_goods = [file_json['id']]
+    # for i in file_json['location_and_quantity']:
+    #     table_shops_goods.append(i['location'])
+    #     table_shops_goods.append(i['amount'])
+    table_shops_goods = (110, 'Магазин на Пушкина', 3,), (110, 'Магазин на Толстого', 5)
 
-    return table_goods, table_shops_goods
+    return tuple(table_goods), tuple(table_shops_goods)
 
 
-def add_json_to_db(table_goods: list, table_shops_goods: list):
+def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
     """ Сохранение в базу в две таблицы. """
-    t_g = tuple(table_goods)
-    t_s_g = tuple(table_shops_goods)
-    # Приложение создаёт таблицы если они не созданы.
-    # Приложение только вставляет данные, но не делает удаления.
-    # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
-    # Использовать либо sqlite3 либо postgre для хранения данных.
     conn = sqlite3.connect('goods.database.db')
     cursor = conn.cursor()
+
+    # Приложение создаёт таблицы если они не созданы.
     cursor.execute("""CREATE TABLE IF NOT EXISTS goods (
                     id integer PRIMARY KEY AUTOINCREMENT,
                     name varchar not null, 
                     package_height float not null,
                     package_width float not null );"""
                    )
-    conn.commit()
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS shops_goods (
                     id integer PRIMARY KEY AUTOINCREMENT,
@@ -66,26 +63,26 @@ def add_json_to_db(table_goods: list, table_shops_goods: list):
                    )
     conn.commit()
 
-    cursor.execute(f"""INSERT INTO goods (
-                        id, name, package_height, package_width) 
-                        values {t_g}
-                        ON CONFLICT(id) do update
-                        set 
-                        name = excluded.name, 
-                        package_width = excluded.package_width, 
-                        package_height = excluded.package_height;"""
+    # Приложение только вставляет данные, но не делает удаления.
+    # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
+    cursor.execute(f"""INSERT INTO goods (id, name, package_height, package_width) 
+                        VALUES {table_goods}
+                        ON CONFLICT(id) 
+                        DO UPDATE SET 
+                        name = EXCLUDED.name, 
+                        package_width = EXCLUDED.package_width, 
+                        package_height = EXCLUDED.package_height;"""
                    )
     conn.commit()
 
-    cursor.execute(f"""INSERT  INTO shops_goods (
-                        id_good, location, amount) 
-                        values {t_s_g}
-                        ON CONFLICT(id_good) do update
-                        set
-                        location = excluded.location,
-                        amount = excluded.amount;"""
-                   )
-    conn.commit()
+    for i in table_shops_goods:
+        id_good, location, amount = i
+        cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
+                            VALUES {id_good, location, amount}
+                            ON CONFLICT(id_good, location) 
+                            DO UPDATE SET amount = EXCLUDED.amount;"""
+                       )
+        conn.commit()
     conn.close()
 
 
