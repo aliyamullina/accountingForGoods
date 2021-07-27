@@ -1,5 +1,6 @@
 import json
 import jsonschema
+import sqlite3
 
 
 def load_json(file_json: str):
@@ -25,7 +26,10 @@ def validate_json_schema(file_json: dict, file_schema: dict):
 
 def prepare_json_to_db(file_json: dict):
     """ Подготовка к сохранению в базу в две таблицы. """
-    table_goods = [file_json['id'], file_json['name'], file_json['package_params']['height'], file_json['package_params']['width']]
+    table_goods = [file_json['id'],
+                   file_json['name'],
+                   file_json['package_params']['height'],
+                   file_json['package_params']['width']]
 
     table_shops_goods = [file_json['id']]
     for i in file_json['location_and_quantity']:
@@ -41,10 +45,26 @@ def add_json_to_db(table_goods, table_shops_goods):
     # Приложение только вставляет данные, но не делает удаления.
     # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
     # Использовать либо sqlite3 либо postgre для хранения данных.
+    conn = sqlite3.connect('goods.database.db')
+    cursor = conn.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS goods (
+                    id integer PRIMARY KEY AUTOINCREMENT,
+                    name varchar not null, package_height float not null,
+                    package_width float not null );"""
+                   )
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS shops_goods (
+                    id integer PRIMARY KEY AUTOINCREMENT,
+                    id_good integer not null, location varchar not null,
+                    amount integer not null,
+                    FOREIGN KEY (id_good)  REFERENCES goods (id));"""
+                   )
+    conn.commit()
+    conn.close()
 
 
 def main():
-    """ Старт программы. """
+    """ Старт приложения. """
     file_json = load_json('goods.file.json')
     file_schema = load_json('goods.schema.json')
 
