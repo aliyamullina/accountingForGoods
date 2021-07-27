@@ -46,17 +46,17 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
 
     # Приложение создаёт таблицы если они не созданы.
     cursor.execute("""CREATE TABLE IF NOT EXISTS goods (
-                    id integer PRIMARY KEY AUTOINCREMENT,
-                    name varchar not null, 
-                    package_height float not null,
-                    package_width float not null );"""
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name            VARCHAR NOT NULL, 
+                    package_height  FLOAT NOT NULL,
+                    package_width   FLOAT NOT NULL);"""
                    )
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS shops_goods (
-                    id integer PRIMARY KEY AUTOINCREMENT,
-                    id_good integer not null, 
-                    location varchar not null,
-                    amount integer not null,
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_good         INTEGER NOT NULL, 
+                    location        VARCHAR NOT NULL,
+                    amount          INTEGER NOT NULL,
                     FOREIGN KEY (id_good) REFERENCES goods (id));"""
                    )
     conn.commit()
@@ -64,19 +64,29 @@ def add_json_to_db(table_goods: tuple, table_shops_goods: tuple):
     # Приложение только вставляет данные, но не делает удаления.
     # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
     cursor.execute(f"""INSERT INTO goods (id, name, package_height, package_width) 
-                        VALUES {table_goods}
-                        ON CONFLICT(id) 
-                        DO UPDATE SET 
-                        name = EXCLUDED.name, 
-                        package_width = EXCLUDED.package_width, 
-                        package_height = EXCLUDED.package_height;"""
+                            VALUES {table_goods}
+                            ON CONFLICT(id) DO UPDATE SET 
+                            name = EXCLUDED.name, 
+                            package_width = EXCLUDED.package_width, 
+                            package_height = EXCLUDED.package_height;"""
                    )
     conn.commit()
 
     for i in table_shops_goods:
         id_good, location, amount = i
+        # Не обновляет, дописывает
+        # cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
+        #                     VALUES {id_good, location, amount}
+        #                     ON CONFLICT(id) DO UPDATE SET
+        #                     id_good = EXCLUDED.id_good,
+        #                     location = EXCLUDED.location,
+        #                     amount = EXCLUDED.amount;"""
+        #                )
         cursor.execute(f"""INSERT INTO shops_goods (id_good, location, amount)
-                            VALUES {id_good, location, amount};"""
+                                VALUES {id_good, location, amount}
+                                ON CONFLICT(id_good) DO UPDATE SET
+                                location = EXCLUDED.location,
+                                amount = EXCLUDED.amount;"""
                        )
         conn.commit()
     conn.close()
