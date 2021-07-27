@@ -25,8 +25,12 @@ def validate_json_schema(file_json: dict, file_schema: dict):
 
 def prepare_json_to_db(file_json: dict):
     """ Подготовка к сохранению в базу в две таблицы. """
-    table_goods = []
-    table_shops_goods = []
+    table_goods = [file_json['id'], file_json['name'], file_json['package_params']['height'], file_json['package_params']['width']]
+
+    table_shops_goods = [file_json['id']]
+    for i in file_json['location_and_quantity']:
+        table_shops_goods.append(i['location'])
+        table_shops_goods.append(i['amount'])
 
     return table_goods, table_shops_goods
 
