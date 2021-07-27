@@ -39,8 +39,10 @@ def prepare_json_to_db(file_json: dict):
     return table_goods, table_shops_goods
 
 
-def add_json_to_db(table_goods, table_shops_goods):
+def add_json_to_db(table_goods: list, table_shops_goods: list):
     """ Сохранение в базу в две таблицы. """
+    t_g = tuple(table_goods)
+    t_s_g = tuple(table_shops_goods)
     # Приложение создаёт таблицы если они не созданы.
     # Приложение только вставляет данные, но не делает удаления.
     # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
@@ -49,15 +51,39 @@ def add_json_to_db(table_goods, table_shops_goods):
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS goods (
                     id integer PRIMARY KEY AUTOINCREMENT,
-                    name varchar not null, package_height float not null,
+                    name varchar not null, 
+                    package_height float not null,
                     package_width float not null );"""
                    )
+    conn.commit()
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS shops_goods (
                     id integer PRIMARY KEY AUTOINCREMENT,
-                    id_good integer not null, location varchar not null,
+                    id_good integer not null, 
+                    location varchar not null,
                     amount integer not null,
-                    FOREIGN KEY (id_good)  REFERENCES goods (id));"""
+                    FOREIGN KEY (id_good) REFERENCES goods (id));"""
+                   )
+    conn.commit()
+
+    cursor.execute(f"""INSERT INTO goods (
+                        id, name, package_height, package_width) 
+                        values {t_g}
+                        ON CONFLICT(id) do update
+                        set 
+                        name = excluded.name, 
+                        package_width = excluded.package_width, 
+                        package_height = excluded.package_height;"""
+                   )
+    conn.commit()
+
+    cursor.execute(f"""INSERT  INTO shops_goods (
+                        id_good, location, amount) 
+                        values {t_s_g}
+                        ON CONFLICT(id_good) do update
+                        set
+                        location = excluded.location,
+                        amount = excluded.amount;"""
                    )
     conn.commit()
     conn.close()
