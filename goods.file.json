@@ -1,0 +1,18 @@
+  {
+            "id": 110,
+            "name": "Лампа",
+            "package_params": {
+                "width": 2,
+                "height": 12
+            },
+            "location_and_quantity": [
+                {
+                    "location": "Магазин на Пушкина",
+                    "amount": 1
+                },
+                {
+                    "location": "Магазин на Толстого",
+                    "amount": 1
+                }
+            ]
+  }
