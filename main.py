@@ -1,7 +1,6 @@
+import contextlib
 import json
 import jsonschema
-
-# Использовать либо sqlite3 либо postgres для хранения данных.
 import sqlite3
 from typing import Callable, NoReturn, cast
 
@@ -50,61 +49,60 @@ def prepare_json_to_db(file_json: dict) -> tuple:
 
 def add_json_to_db(table_goods: tuple, table_shops_goods: tuple) -> None:
     """Сохранение в базу в две таблицы."""
-    conn = sqlite3.connect("goods.database.db")
-    cursor = conn.cursor()
+    try:
+        # auto-closes:
+        with contextlib.closing(sqlite3.connect("goods.database.db")) as conn:
+            # auto-commits:
+            with conn:
+                # auto-closes
+                with contextlib.closing(conn.cursor()) as cursor:
+                    cursor.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS goods (
+                            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name            VARCHAR NOT NULL,
+                            package_height  FLOAT NOT NULL,
+                            package_width   FLOAT NOT NULL
+                        );
+                        """
+                    )
 
-    # Приложение создаёт таблицы если они не созданы.
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS goods (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            name            VARCHAR NOT NULL,
-            package_height  FLOAT NOT NULL,
-            package_width   FLOAT NOT NULL
-        );
-        """
-    )
+                    cursor.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS shops_goods (
+                            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id_good         INTEGER NOT NULL,
+                            location        VARCHAR NOT NULL,
+                            amount          INTEGER NOT NULL,
+                            UNIQUE(id_good, location),
+                            FOREIGN KEY (id_good) REFERENCES goods (id)
+                        );
+                        """
+                    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS shops_goods (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_good         INTEGER NOT NULL,
-            location        VARCHAR NOT NULL,
-            amount          INTEGER NOT NULL,
-            UNIQUE(id_good, location),
-            FOREIGN KEY (id_good) REFERENCES goods (id)
-        );
-        """
-    )
-    conn.commit()
+                    cursor.execute(
+                        f"""
+                        INSERT INTO goods (id, name, package_height, package_width)
+                            VALUES {table_goods}
+                            ON CONFLICT(id) DO UPDATE SET
+                            name            = EXCLUDED.name,
+                            package_width   = EXCLUDED.package_width,
+                            package_height  = EXCLUDED.package_height;
+                        """
+                    )
 
-    # Приложение только вставляет данные, но не делает удаления.
-    # Если пришли новые данные по предмету уже имеющемуся в базе — обновить.
-    cursor.execute(
-        f"""
-        INSERT INTO goods (id, name, package_height, package_width)
-            VALUES {table_goods}
-            ON CONFLICT(id) DO UPDATE SET
-            name            = EXCLUDED.name,
-            package_width   = EXCLUDED.package_width,
-            package_height  = EXCLUDED.package_height;
-        """
-    )
-    conn.commit()
-
-    for i in table_shops_goods:
-        id_good, location, amount = i
-        cursor.execute(
-            f"""
-            INSERT INTO shops_goods (id_good, location, amount)
-                VALUES {id_good, location, amount}
-                ON CONFLICT(id_good, location) DO UPDATE SET
-                amount = EXCLUDED.amount;
-            """
-        )
-        conn.commit()
-    conn.close()
+                    for i in table_shops_goods:
+                        id_good, location, amount = i
+                        cursor.execute(
+                            f"""
+                            INSERT INTO shops_goods (id_good, location, amount)
+                                VALUES {id_good, location, amount}
+                                ON CONFLICT(id_good, location) DO UPDATE SET
+                                amount = EXCLUDED.amount;
+                            """
+                        )
+    except sqlite3.OperationalError as err:
+        print('Ошибка', err)
 
 
 def main() -> None:
